@@ -3,43 +3,36 @@ import requests
 
 app = Flask(__name__)
 
-# --- بياناتك اللي انطيتني إياها ---
 TOKEN = "8793262042:AAG_WJTh3In4vfK2gsZyPQ_WGjU8txvK9Os"
 ID = "6696928411"
 
-@app.route('/')
-def home():
-    return "<h1>Ahmed's API Sniper is Live!</h1>"
-
 @app.route('/check', methods=['GET'])
 def check_user():
-    # هذا السطر يستلم اسم اليوزر من أداة كالي
     user = request.args.get('user')
-    
-    if not user:
-        return jsonify({"error": "No user provided"}), 400
+    if not user: return jsonify({"error": "No user"}), 400
 
-    # رابط الفحص المباشر
+    # هيدرز حقيقية توهم تيك توك إنك متصفح آيفون
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+    
     url = f"https://www.tiktok.com/@{user}"
     
     try:
-        # هنا السيرفر يفحص اليوزر
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=5)
+        # السر هنا: نمنع التحويل (allow_redirects=False)
+        response = requests.get(url, headers=headers, timeout=10, allow_redirects=False)
         
-        # إذا كانت النتيجة 404 معناها اليوزر متاح (صيد)
+        # تيك توك يعطي 404 لليوزر المتاح إذا منعنا التحويل
         if response.status_code == 404:
-            msg = f"✅ هب يا وحش! صيد جديد:\n👤 User: @{user}\n🚀 By Ahmed Sniper"
-            # إرسال الرسالة لتليجرام مالتك
+            msg = f"✅ صيد مؤكد ياعبادي! \n👤 User: @{user}\n🚀 Type: TikTok"
             requests.get(f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text={msg}")
             return jsonify({"status": "available", "user": user})
         
         return jsonify({"status": "taken"})
-        
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    except:
+        return jsonify({"status": "error"}), 500
 
 if __name__ == "__main__":
-    # تشغيل السيرفر
     app.run(host='0.0.0.0', port=5000)
-
