@@ -1,33 +1,42 @@
+import requests, random, string
 from flask import Flask, request, jsonify
-import requests
 
 app = Flask(__name__)
 
+# بياناتك
 TOKEN = "8793262042:AAG_WJTh3In4vfK2gsZyPQ_WGjU8txvK9Os"
 ID = "6696928411"
+
+def get_random_string(length):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 @app.route('/check', methods=['GET'])
 def check_user():
     user = request.args.get('user')
     if not user: return jsonify({"error": "No user"}), 400
 
-    # رابط الفحص المباشر (API الداخلي)
-    # هذا الرابط يعطينا إذا اليوزر متاح للتسجيل أو لا
-    url = f"https://www.tiktok.com/api/uniqueid/check/?unique_id={user}&region=IQ&aid=1988"
-    
+    # هيدرز "المحترف" - محاكاة كاملة لمتصفح آمن
+    session = requests.Session()
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Referer": "https://www.tiktok.com/signup"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.tiktok.com/signup",
+        "Origin": "https://www.tiktok.com",
+        "Cookie": f"tt_webid_v2={get_random_string(19)};" # توليد كوكيز وهمي لكل فحص
     }
 
+    url = f"https://www.tiktok.com/api/uniqueid/check/?unique_id={user}&aid=1988"
+
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        # فحص مباشر مع جلسة
+        response = session.get(url, headers=headers, timeout=10)
         data = response.json()
         
-        # status_code 0 معناه اليوزر متاح للتسجيل (صيد)
+        # إذا كان status_code هو 0 يعني اليوزر متاح 100%
         if data.get("status_code") == 0:
-            msg = f"✅ صيد مؤكد ياعبادي! \n👤 User: @{user}\n🚀 Type: TikTok Sniper"
+            # إرسال الصيد فوراً
+            msg = f"🚀 هب يابطل! صيد نووي: @{user}\n🎯 النوع: تيك توك"
             requests.get(f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text={msg}")
             return jsonify({"status": "available", "user": user})
         else:
