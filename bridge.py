@@ -1,42 +1,43 @@
-import requests, random, string
 from flask import Flask, request, jsonify
+import requests
 
 app = Flask(__name__)
 
-# بياناتك
+# بيانات التليجرام مالتك
 TOKEN = "8793262042:AAG_WJTh3In4vfK2gsZyPQ_WGjU8txvK9Os"
 ID = "6696928411"
-
-def get_random_string(length):
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 @app.route('/check', methods=['GET'])
 def check_user():
     user = request.args.get('user')
     if not user: return jsonify({"error": "No user"}), 400
 
-    # هيدرز "المحترف" - محاكاة كاملة لمتصفح آمن
-    session = requests.Session()
+    url = 'https://www.instagram.com/api/v1/users/check_username/'
+    
+    # البصمة اللي صيدتها أنت (نقلتها لك هنا بدقة)
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.tiktok.com/signup",
-        "Origin": "https://www.tiktok.com",
-        "Cookie": f"tt_webid_v2={get_random_string(19)};" # توليد كوكيز وهمي لكل فحص
+        'authority': 'www.instagram.com',
+        'accept': '*/*',
+        'accept-language': 'ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+        'content-type': 'application/x-www-form-urlencoded',
+        'cookie': 'csrftoken=3Cdgpg_nalU2CckHOH1wu_; datr=AYTQaaX4pnz9aNylmkyKhFW8; ig_did=C148D1E0-D17F-4FE5-A1EB-7F0BC2596FF5; mid=adCEAQABAAFggjsTkpCFkypL3haz;',
+        'origin': 'https://www.instagram.com',
+        'referer': 'https://www.instagram.com/accounts/emailsignup/',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'x-csrftoken': '3Cdgpg_nalU2CckHOH1wu_',
+        'x-ig-app-id': '936619743392459'
     }
 
-    url = f"https://www.tiktok.com/api/uniqueid/check/?unique_id={user}&aid=1988"
+    data = {'username': user}
 
     try:
-        # فحص مباشر مع جلسة
-        response = session.get(url, headers=headers, timeout=10)
-        data = response.json()
+        # فحص يوزر إنستغرام
+        response = requests.post(url, headers=headers, data=data, timeout=10)
+        res_json = response.json()
         
-        # إذا كان status_code هو 0 يعني اليوزر متاح 100%
-        if data.get("status_code") == 0:
-            # إرسال الصيد فوراً
-            msg = f"🚀 هب يابطل! صيد نووي: @{user}\n🎯 النوع: تيك توك"
+        # إذا كان متاح للتسجيل
+        if res_json.get("status") == "ok" and res_json.get("available") == True:
+            msg = f"💎 صيد إنستغرام ملكي! \n👤 User: @{user}\n🚀 Type: Instagram"
             requests.get(f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text={msg}")
             return jsonify({"status": "available", "user": user})
         else:
